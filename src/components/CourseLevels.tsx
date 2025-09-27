@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Play, Lock, CheckCircle, Star, Clock, Trophy, Flame, Zap, Book } from 'lucide-react';
-import YouTubeLessonContent from './YouTubeLessonContent';
+import YouTubeLessonContent from './YouTubeLessonContent.tsx';
 
 interface Level {
   id: string;
