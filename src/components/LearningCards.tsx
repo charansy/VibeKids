@@ -676,43 +676,37 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
 
         {/* Card Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          {/* Card Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="text-2xl">{currentCardData.icon}</div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800">{currentCardData.title}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-500 capitalize">
-                  {currentCardData.type.replace('-', ' ')}
-                </span>
-                {completedCards.has(currentCard) && (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                )}
-              </div>
-            </div>
+          {/* Small Title */}
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+              {currentCardData.type.replace('-', ' ')}
+            </h3>
           </div>
 
           {/* Card Content */}
           <div className="space-y-3">
-            {/* Simple explanation */}
+            {/* The Concept */}
             {currentCardData.content.explanation && (
-              <div className="text-gray-700 leading-relaxed">
-                {currentCardData.content.explanation}
+              <div className="mb-4">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">The Concept</h4>
+                <div className="text-gray-700 leading-relaxed">
+                  {currentCardData.content.explanation}
+                </div>
               </div>
             )}
 
             {/* Key idea */}
             {currentCardData.content.keyIdea && (
-              <div className="bg-blue-50 rounded p-3 border-l-2 border-blue-400">
-                <div className="text-sm font-medium text-blue-800 mb-1">Key Idea:</div>
+              <div className="bg-blue-50 rounded p-3 border-l-2 border-blue-400 mb-4">
+                <div className="text-sm font-medium text-blue-800 mb-1">Key Concept:</div>
                 <div className="text-blue-700 text-sm">{currentCardData.content.keyIdea}</div>
               </div>
             )}
 
             {/* Concept */}
             {currentCardData.content.concept && (
-              <div className="bg-green-50 rounded p-3 border-l-2 border-green-400">
-                <div className="text-sm font-medium text-green-800 mb-1">The Concept:</div>
+              <div className="bg-green-50 rounded p-3 border-l-2 border-green-400 mb-4">
+                <div className="text-sm font-medium text-green-800 mb-1">Concept:</div>
                 <div className="text-green-700 text-sm">{currentCardData.content.concept}</div>
               </div>
             )}
