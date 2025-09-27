@@ -769,8 +769,8 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
 
             {/* Image */}
             {currentCardData.content.image && (
-              <div className="bg-white/50 rounded-lg p-4 border-l-4 border-blue-400 mb-4">
-                <div className="text-sm font-medium text-gray-800 mb-3">Visual Example</div>
+              <div className="bg-white/50 rounded-lg p-4 border-l-4 border-blue-400">
+                <div className="font-semibold text-gray-800 mb-4">Visual Example:</div>
                 <div className="flex justify-center">
                   <img 
                     src={currentCardData.content.image} 
@@ -967,21 +967,17 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
           <button
             onClick={handlePrevCard}
             disabled={currentCard === 0}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="w-4 h-4" />
             Previous
           </button>
 
-          <div className="text-center text-sm text-gray-500">
-            {completedCards.size} completed
-          </div>
-
           <button
             onClick={handleNextCard}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
           >
-            {currentCard === learningCards.length - 1 ? 'Complete' : 'Next'}
+            Next
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
