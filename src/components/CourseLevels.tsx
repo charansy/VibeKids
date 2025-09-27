@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Play, Lock, CheckCircle, Star, Clock, Trophy, Flame, Zap, Book } from 'lucide-react';
-import LessonContent from './LessonContent';
+import YouTubeLessonContent from './YouTubeLessonContent';
 
 interface Level {
   id: string;
@@ -247,7 +247,7 @@ const CourseLevels: React.FC<CourseLevelsProps> = ({ courseId, setActiveSection,
   // If a level is selected, show the lesson content
   if (selectedLevel) {
     return (
-      <LessonContent
+      <YouTubeLessonContent
         level={selectedLevel}
         courseTitle={course.title}
         onBack={handleBackToCourse}
