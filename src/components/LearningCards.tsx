@@ -769,8 +769,8 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
 
             {/* Image */}
             {currentCardData.content.image && (
-              <div className="bg-white/50 rounded-lg p-4 border-l-4 border-blue-400">
-                <div className="font-semibold text-gray-800 mb-4">Visual Example:</div>
+              <div className="bg-white/50 rounded-lg p-4 border-l-4 border-blue-400 mb-4">
+                <div className="text-sm font-medium text-gray-800 mb-3">Visual Example</div>
                 <div className="flex justify-center">
                   <img 
                     src={currentCardData.content.image} 
