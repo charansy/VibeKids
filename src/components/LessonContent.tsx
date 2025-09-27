@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Play, Clock, Star, Trophy, BookOpen, CheckCircle, Zap, Video, Code, Brain, FileText, PlayCircle, Pause, RotateCcw } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Play, Pause, Volume2, VolumeX, Settings, MoreHorizontal, SkipBack, SkipForward } from 'lucide-react';
 
 interface Level {
   id: string;
@@ -12,33 +12,15 @@ interface Level {
   type: 'lesson' | 'checkpoint' | 'story' | 'practice';
   contentType?: 'article' | 'video' | 'quiz' | 'interactive-lab' | 'coding-exercise';
   content?: {
-    article?: {
-      sections: Array<{
-        title: string;
-        content: string;
-        diagram?: string;
-      }>;
-    };
-    video?: {
+    shortDescription?: string;
+    videoUrl?: string;
+    thumbnail?: string;
+    textExplanation?: string;
+    voiceOverUrl?: string;
+    visualContent?: {
+      type: 'image' | 'diagram' | 'animation';
       url: string;
-      thumbnail: string;
-      duration: string;
-    };
-    quiz?: {
-      question: string;
-      options: string[];
-      correct: number;
-      explanation: string;
-    };
-    interactiveLab?: {
-      type: 'teachable-machine' | 'circuit-simulator' | 'code-playground';
-      config: any;
-    };
-    codingExercise?: {
-      language: string;
-      starterCode: string;
-      instructions: string;
-      testCases: Array<{ input: string; expected: string }>;
+      alt: string;
     };
   };
 }
@@ -51,557 +33,395 @@ interface LessonContentProps {
 }
 
 const LessonContent: React.FC<LessonContentProps> = ({ level, courseTitle, onBack, onComplete }) => {
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [quizAnswer, setQuizAnswer] = useState<number | null>(null);
-  const [code, setCode] = useState(level.content?.codingExercise?.starterCode || '');
-  const [showFullscreen, setShowFullscreen] = useState(false);
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Hard': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'lesson': return '📚';
-      case 'checkpoint': return '🎯';
-      case 'story': return '📖';
-      case 'practice': return '💪';
-      default: return '📚';
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'lesson': return 'from-blue-500 to-blue-600';
-      case 'checkpoint': return 'from-purple-500 to-purple-600';
-      case 'story': return 'from-pink-500 to-pink-600';
-      case 'practice': return 'from-green-500 to-green-600';
-      default: return 'from-blue-500 to-blue-600';
-    }
-  };
-
-  // Determine content type based on level data
-  const contentType = level.contentType || 'article';
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Generate sample content based on level
-  const generateContent = () => {
-    if (level.content) return level.content;
-    
-    // Generate sample content based on level type and title
-    const baseContent = {
-      article: {
-        sections: [
-          {
-            title: `Understanding ${level.title}`,
-            content: `In this lesson, we'll explore the fundamental concepts of ${level.title.toLowerCase()}. This is a ${level.difficulty.toLowerCase()} level lesson that will take approximately ${level.duration} to complete.`,
-            diagram: '📊'
-          },
-          {
-            title: 'Key Concepts',
-            content: `The main concepts covered in this lesson include:\n\n• Core principles and theories\n• Practical applications\n• Real-world examples\n• Hands-on exercises\n\nBy the end of this lesson, you'll have a solid understanding of ${level.title.toLowerCase()} and be able to apply these concepts in practical situations.`
-          },
-          {
-            title: 'Practice Exercises',
-            content: `Now it's time to put your knowledge to the test! Complete the following exercises to reinforce what you've learned:\n\n1. Identify the key components\n2. Apply the concepts to solve problems\n3. Create your own examples\n4. Test your understanding with quizzes`
-          }
-        ]
-      },
-      video: {
-        url: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-        thumbnail: 'https://via.placeholder.com/800x450/4F46E5/FFFFFF?text=Video+Lesson',
-        duration: level.duration
-      },
-      quiz: {
-        question: `What is the main focus of ${level.title}?`,
-        options: [
-          'Basic concepts and principles',
-          'Advanced technical details',
-          'Historical background',
-          'Future applications'
-        ],
-        correct: 0,
-        explanation: `The main focus of ${level.title} is to understand the basic concepts and principles that form the foundation of this topic.`
-      },
-      interactiveLab: {
-        type: 'circuit-simulator',
-        config: { components: ['led', 'resistor', 'battery', 'switch'] }
-      },
-      codingExercise: {
-        language: 'javascript',
-        starterCode: `// ${level.title} - Coding Exercise
-function solveProblem() {
-  // Your code here
-  return "Hello, World!";
-}
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-// Test your solution
-console.log(solveProblem());`,
-        instructions: `Complete the function to solve the ${level.title} problem.`,
-        testCases: [
-          { input: 'test1', expected: 'Hello, World!' },
-          { input: 'test2', expected: 'Hello, World!' }
-        ]
+  // Generate sample content for demonstration
+  const content = level.content || {
+    shortDescription: "In this lesson, we'll explore the fundamental concepts of machine learning and how AI can recognize different types of waste materials.",
+    videoUrl: "/aibin.mp4", // Using the video file from public folder
+    thumbnail: "https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    textExplanation: `Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed for every scenario.
+
+In our Smart AI Dustbin project, we use computer vision - a branch of AI that helps computers "see" and understand images. The system learns to distinguish between different types of waste by analyzing thousands of images.
+
+Key concepts covered:
+• Pattern Recognition: How AI identifies common features in images
+• Training Data: The importance of diverse, high-quality datasets
+• Model Accuracy: Understanding how well our AI performs
+• Real-world Applications: Practical uses of computer vision technology
+
+This technology has applications beyond waste sorting - from medical diagnosis to autonomous vehicles, computer vision is revolutionizing how machines interact with the visual world.`,
+    voiceOverUrl: "/audio/lesson-voiceover.mp3",
+    visualContent: {
+      type: 'image' as const,
+      url: "https://images.pexels.com/photos/8566473/pexels-photo-8566473.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      alt: "AI and Machine Learning Visualization"
+    }
+  };
+
+  // Handle play/pause
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        if (audioRef.current) audioRef.current.pause();
+      } else {
+        videoRef.current.play();
+        if (audioRef.current) audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Handle time update
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  // Handle duration change
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  // Format time
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Handle progress bar click
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const newTime = (clickX / rect.width) * duration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (videoRef.current) videoRef.current.volume = newVolume;
+    if (audioRef.current) audioRef.current.volume = newVolume;
+  };
+
+  // Toggle mute
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (videoRef.current) videoRef.current.muted = !isMuted;
+    if (audioRef.current) audioRef.current.muted = !isMuted;
+  };
+
+  // Show/hide controls
+  const showControlsTemporarily = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) setShowControls(false);
+    }, 3000);
+  };
+
+  // Handle mouse movement
+  const handleMouseMove = () => {
+    showControlsTemporarily();
+  };
+
+  // Skip forward/backward
+  const skipTime = (seconds: number) => {
+    if (videoRef.current) {
+      const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
       }
     };
+  }, []);
 
-    return baseContent[contentType as keyof typeof baseContent];
-  };
-
-  const content = generateContent();
-
-  // Render different content types
-  const renderContentCanvas = () => {
-    switch (contentType) {
-      case 'article':
-        return (
-          <div className="min-h-screen bg-white">
-            {/* Article Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200 sticky top-20 z-40">
-              <div className="max-w-4xl mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Course
-                  </button>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-orange-100 rounded-full px-3 py-1">
-                      <Zap className="w-4 h-4 text-orange-500 mr-1" />
-                      <span className="font-bold text-orange-700">{level.points} XP</span>
-                    </div>
-                    <div className="flex items-center bg-blue-100 rounded-full px-3 py-1">
-                      <Clock className="w-4 h-4 text-blue-500 mr-1" />
-                      <span className="font-bold text-blue-700">{level.duration}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+  return (
+    <div className="min-h-screen bg-black text-white">
+      {/* Top Navigation Bar */}
+      <div className="bg-black bg-opacity-90 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onBack}
+              className="flex items-center text-white hover:text-gray-300 transition-colors p-2 hover:bg-white hover:bg-opacity-10 rounded-full"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-medium text-white">{level.title}</h1>
+              <p className="text-sm text-gray-400">{courseTitle}</p>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full transition-colors">
+              <Settings className="w-5 h-5 text-gray-300" />
+            </button>
+            <button className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full transition-colors">
+              <MoreHorizontal className="w-5 h-5 text-gray-300" />
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Article Content */}
-            <div className="max-w-4xl mx-auto px-4 py-8">
-              <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-                <div className="flex items-center mb-6">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl mr-4 bg-gradient-to-r ${getTypeColor(level.type)}`}>
-                    {getTypeIcon(level.type)}
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">{level.title}</h1>
-                    <p className="text-gray-600 text-lg">{courseTitle}</p>
-                  </div>
+      {/* Main Content */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Video/Visual Content Area */}
+        <div className="flex-1">
+          <div 
+            ref={containerRef}
+            className="relative bg-black aspect-video w-full max-w-none"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => isPlaying && setShowControls(false)}
+          >
+            {/* Video Element */}
+            <video
+              ref={videoRef}
+              className="w-full h-full object-contain cursor-pointer"
+              poster={content.thumbnail}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onClick={togglePlayPause}
+              muted={isMuted}
+            >
+              <source src={content.videoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+
+            {/* Voice Over Audio */}
+            {content.voiceOverUrl && (
+              <audio
+                ref={audioRef}
+                src={content.voiceOverUrl}
+                muted={isMuted}
+              />
+            )}
+
+            {/* Video Controls Overlay */}
+            <div 
+              className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent transition-opacity duration-300 ${
+                showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {/* Center Play Button */}
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button
+                    onClick={togglePlayPause}
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-full p-4 transition-all duration-200 hover:scale-110"
+                  >
+                    <Play className="w-8 h-8 ml-1" />
+                  </button>
                 </div>
-                
-                <p className="text-gray-700 text-lg leading-relaxed mb-6">
-                  {level.description}
-                </p>
-                
-                <div className="flex items-center space-x-4">
-                  <div className={`px-3 py-1 rounded-full border ${getDifficultyColor(level.difficulty)}`}>
-                    <span className="text-sm font-medium">{level.difficulty}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{level.duration}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Star className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{level.points} points</span>
-                  </div>
-                </div>
-              </div>
+              )}
 
-              {/* Article Sections */}
-              <div className="space-y-8">
-                {content.article?.sections.map((section, index) => (
-                  <div key={index} className="bg-white rounded-xl shadow-md p-8">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                      <FileText className="w-6 h-6 mr-3 text-blue-500" />
-                      {section.title}
-                    </h2>
-                    
-                    {section.diagram && (
-                      <div className="bg-gray-50 rounded-lg p-8 text-center mb-6">
-                        <div className="text-6xl mb-4">{section.diagram}</div>
-                        <p className="text-gray-600 text-sm">AI-generated diagram illustrating key concepts</p>
-                      </div>
-                    )}
-                    
-                    <div className="prose prose-lg max-w-none">
-                      {section.content.split('\n').map((paragraph, pIndex) => (
-                        <p key={pIndex} className="text-gray-700 leading-relaxed mb-4">
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Article Actions */}
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={onComplete}
-                  className="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-8 rounded-lg transition-colors duration-200 flex items-center"
+              {/* Bottom Controls */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                {/* Progress Bar */}
+                <div 
+                  className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4 hover:h-2 transition-all duration-200"
+                  onClick={handleProgressClick}
                 >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Complete Article
-                </button>
-              </div>
-            </div>
-          </div>
-        );
+                  <div 
+                    className="h-full bg-red-600 rounded-full relative"
+                    style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                  >
+                    <div className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full opacity-0 hover:opacity-100 transition-opacity"></div>
+                  </div>
+                </div>
 
-      case 'video':
-        return (
-          <div className="min-h-screen bg-black">
-            {/* Video Header */}
-            <div className="bg-black bg-opacity-80 text-white sticky top-20 z-40">
-              <div className="max-w-6xl mx-auto px-4 py-4">
+                {/* Control Buttons */}
                 <div className="flex items-center justify-between">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-white hover:text-gray-300 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Course
-                  </button>
-                  
                   <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-orange-500 bg-opacity-20 rounded-full px-3 py-1">
-                      <Zap className="w-4 h-4 text-orange-400 mr-1" />
-                      <span className="font-bold text-orange-300">{level.points} XP</span>
-                    </div>
-                    <div className="flex items-center bg-blue-500 bg-opacity-20 rounded-full px-3 py-1">
-                      <Clock className="w-4 h-4 text-blue-400 mr-1" />
-                      <span className="font-bold text-blue-300">{level.duration}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Video Player */}
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="w-full max-w-6xl mx-4">
-                <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl">
-                  <div className="aspect-video relative">
-                    {isVideoPlaying ? (
-                      <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="text-6xl mb-4">🎬</div>
-                          <p className="text-white text-lg">Video Player</p>
-                          <p className="text-gray-400 text-sm">Video would play here</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div 
-                        className="w-full h-full bg-cover bg-center cursor-pointer flex items-center justify-center"
-                        style={{ backgroundImage: `url(${content.video?.thumbnail})` }}
-                        onClick={() => setIsVideoPlaying(true)}
-                      >
-                        <div className="bg-black bg-opacity-50 rounded-full p-6 hover:bg-opacity-70 transition-all">
-                          <PlayCircle className="w-16 h-16 text-white" />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Video Controls */}
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={() => setIsVideoPlaying(!isVideoPlaying)}
-                          className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all"
-                        >
-                          {isVideoPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-                        </button>
-                        <span className="text-white text-sm">0:00 / {content.video?.duration}</span>
-                      </div>
-                      
-                      <button
-                        onClick={() => setShowFullscreen(!showFullscreen)}
-                        className="bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all"
-                      >
-                        <span className="text-sm">⛶</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Video Info */}
-                <div className="mt-6 text-center">
-                  <h1 className="text-2xl font-bold text-white mb-2">{level.title}</h1>
-                  <p className="text-gray-300">{level.description}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'quiz':
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-            <div className="max-w-2xl w-full mx-4">
-              {/* Quiz Header */}
-              <div className="bg-white rounded-t-2xl shadow-lg p-6 border-b">
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Course
-                  </button>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-orange-100 rounded-full px-3 py-1">
-                      <Zap className="w-4 h-4 text-orange-500 mr-1" />
-                      <span className="font-bold text-orange-700">{level.points} XP</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">{level.title}</h1>
-                <p className="text-gray-600">{level.description}</p>
-              </div>
-
-              {/* Quiz Content */}
-              <div className="bg-white rounded-b-2xl shadow-lg p-8">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Brain className="w-8 h-8 text-purple-600" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Quiz Question</h2>
-                  <p className="text-lg text-gray-700">{content.quiz?.question}</p>
-                </div>
-
-                <div className="space-y-3 mb-8">
-                  {content.quiz?.options.map((option, index) => (
                     <button
-                      key={index}
-                      onClick={() => setQuizAnswer(index)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
-                        quizAnswer === index
-                          ? index === content.quiz?.correct
-                            ? 'border-green-500 bg-green-50 text-green-800'
-                            : 'border-red-500 bg-red-50 text-red-800'
-                          : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                      }`}
+                      onClick={togglePlayPause}
+                      className="text-white hover:text-gray-300 transition-colors"
                     >
-                      <div className="flex items-center">
-                        <div className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${
-                          quizAnswer === index
-                            ? index === content.quiz?.correct
-                              ? 'border-green-500 bg-green-500'
-                              : 'border-red-500 bg-red-500'
-                            : 'border-gray-300'
-                        }`}>
-                          {quizAnswer === index && (
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          )}
-                        </div>
-                        <span className="font-medium">{option}</span>
-                      </div>
+                      {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                     </button>
-                  ))}
-                </div>
+                    
+                    <button
+                      onClick={() => skipTime(-10)}
+                      className="text-white hover:text-gray-300 transition-colors"
+                    >
+                      <SkipBack className="w-5 h-5" />
+                    </button>
+                    
+                    <button
+                      onClick={() => skipTime(10)}
+                      className="text-white hover:text-gray-300 transition-colors"
+                    >
+                      <SkipForward className="w-5 h-5" />
+                    </button>
 
-                {quizAnswer !== null && (
-                  <div className={`p-4 rounded-lg mb-6 ${
-                    quizAnswer === content.quiz?.correct
-                      ? 'bg-green-50 border border-green-200'
-                      : 'bg-red-50 border border-red-200'
-                  }`}>
-                    <p className={`font-medium ${
-                      quizAnswer === content.quiz?.correct ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {quizAnswer === content.quiz?.correct ? '✅ Correct!' : '❌ Incorrect'}
-                    </p>
-                    <p className={`text-sm mt-1 ${
-                      quizAnswer === content.quiz?.correct ? 'text-green-700' : 'text-red-700'
-                    }`}>
-                      {content.quiz?.explanation}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex justify-center">
-                  <button
-                    onClick={onComplete}
-                    className="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-8 rounded-lg transition-colors duration-200 flex items-center"
-                  >
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Complete Quiz
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'interactive-lab':
-        return (
-          <div className="min-h-screen bg-gray-900">
-            {/* Lab Header */}
-            <div className="bg-gray-800 text-white sticky top-20 z-40">
-              <div className="max-w-7xl mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-white hover:text-gray-300 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Course
-                  </button>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-orange-500 bg-opacity-20 rounded-full px-3 py-1">
-                      <Zap className="w-4 h-4 text-orange-400 mr-1" />
-                      <span className="font-bold text-orange-300">{level.points} XP</span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={toggleMute}
+                        className="text-white hover:text-gray-300 transition-colors"
+                      >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                      />
                     </div>
-                    <div className="text-sm text-gray-300">
-                      Interactive Lab: {content.interactiveLab?.type}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Lab Canvas */}
-            <div className="h-screen bg-gray-900 flex items-center justify-center">
-              <div className="w-full h-full max-w-6xl mx-4">
-                <div className="bg-gray-800 rounded-lg h-full p-6">
-                  <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-white mb-2">{level.title}</h1>
-                    <p className="text-gray-300">{level.description}</p>
+                    <span className="text-sm text-gray-300">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
                   </div>
-                  
-                  <div className="bg-gray-700 rounded-lg h-3/4 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">🧪</div>
-                      <h3 className="text-xl font-bold text-white mb-2">Interactive Lab</h3>
-                      <p className="text-gray-300 mb-4">
-                        {content.interactiveLab?.type === 'teachable-machine' && 'AI Model Training Interface'}
-                        {content.interactiveLab?.type === 'circuit-simulator' && 'Circuit Building Simulator'}
-                        {content.interactiveLab?.type === 'code-playground' && 'Code Execution Environment'}
-                      </p>
-                      <div className="bg-gray-600 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="text-sm text-gray-300">
-                          This is where the interactive lab would be embedded. 
-                          The lab takes over the entire content canvas with no other distractions.
-                        </p>
-                      </div>
-                    </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button className="text-white hover:text-gray-300 transition-colors">
+                      <Settings className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        );
+        </div>
 
-      case 'coding-exercise':
-        return (
-          <div className="min-h-screen bg-gray-900">
-            {/* Code Header */}
-            <div className="bg-gray-800 text-white sticky top-20 z-40">
-              <div className="max-w-7xl mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={onBack}
-                    className="flex items-center text-white hover:text-gray-300 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Course
-                  </button>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center bg-orange-500 bg-opacity-20 rounded-full px-3 py-1">
-                      <Zap className="w-4 h-4 text-orange-400 mr-1" />
-                      <span className="font-bold text-orange-300">{level.points} XP</span>
-                    </div>
-                    <div className="text-sm text-gray-300">
-                      {content.codingExercise?.language} Exercise
-                    </div>
-                  </div>
+        {/* Sidebar Content */}
+        <div className="w-full lg:w-96 bg-white text-black">
+          <div className="p-6">
+            {/* Short Description with Play Button */}
+            <div className="mb-6">
+              <div className="flex items-start space-x-4 mb-4">
+                <button
+                  onClick={togglePlayPause}
+                  className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white rounded-full p-3 transition-all duration-200 hover:scale-105"
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                </button>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{level.title}</h2>
+                  <p className="text-gray-700 leading-relaxed">{content.shortDescription}</p>
                 </div>
               </div>
             </div>
 
-            {/* Code Editor */}
-            <div className="h-screen bg-gray-900 flex">
-              {/* Instructions Panel */}
-              <div className="w-1/3 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto">
-                <h1 className="text-xl font-bold text-white mb-4">{level.title}</h1>
-                <p className="text-gray-300 mb-6">{level.description}</p>
-                
-                <div className="bg-gray-700 rounded-lg p-4 mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-2">Instructions</h3>
-                  <p className="text-gray-300 text-sm">{content.codingExercise?.instructions}</p>
-                </div>
-                
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-white mb-2">Test Cases</h3>
-                  <div className="space-y-2">
-                    {content.codingExercise?.testCases.map((testCase, index) => (
-                      <div key={index} className="text-sm">
-                        <div className="text-gray-300">Input: <code className="bg-gray-600 px-1 rounded">{testCase.input}</code></div>
-                        <div className="text-gray-300">Expected: <code className="bg-gray-600 px-1 rounded">{testCase.expected}</code></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Code Editor */}
-              <div className="flex-1 flex flex-col">
-                <div className="bg-gray-800 border-b border-gray-700 p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-white font-semibold">Code Editor</h3>
-                    <div className="flex space-x-2">
-                      <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
-                        Run Code
-                      </button>
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex-1 p-4">
-                  <textarea
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-full h-full bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none resize-none"
-                    placeholder="Write your code here..."
+            {/* Visual Content */}
+            {content.visualContent && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Visual Guide</h3>
+                <div className="rounded-lg overflow-hidden shadow-md">
+                  <img
+                    src={content.visualContent.url}
+                    alt={content.visualContent.alt}
+                    className="w-full h-48 object-cover"
                   />
                 </div>
               </div>
+            )}
+
+            {/* Text Explanation */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Detailed Explanation</h3>
+              <div className="prose prose-sm max-w-none">
+                {content.textExplanation.split('\n\n').map((paragraph, index) => (
+                  <p key={index} className="text-gray-700 leading-relaxed mb-4">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Lesson Info */}
+            <div className="border-t border-gray-200 pt-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Duration:</span>
+                  <span className="ml-2 font-medium text-gray-900">{level.duration}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Difficulty:</span>
+                  <span className="ml-2 font-medium text-gray-900">{level.difficulty}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Points:</span>
+                  <span className="ml-2 font-medium text-gray-900">{level.points} XP</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Type:</span>
+                  <span className="ml-2 font-medium text-gray-900 capitalize">{level.type}</span>
+                </div>
+              </div>
             </div>
           </div>
-        );
+        </div>
+      </div>
 
-      default:
-        return (
-          <div className="min-h-screen bg-white flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">❓</div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Content Loading...</h1>
-              <p className="text-gray-600">Unknown content type: {contentType}</p>
-            </div>
-          </div>
-        );
-    }
-  };
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={onComplete}
+          className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:scale-105 shadow-lg flex items-center space-x-2"
+        >
+          <span>Next Lesson</span>
+          <ArrowRight className="w-5 h-5" />
+        </button>
+      </div>
 
-  return renderContentCanvas();
+      {/* Custom Styles */}
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #dc2626;
+          cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #dc2626;
+          cursor: pointer;
+          border: none;
+        }
+      `}</style>
+    </div>
+  );
 };
 
 export default LessonContent;

@@ -229,55 +229,6 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
     },
     {
       id: '5',
-      title: 'AI Basics',
-      description: 'Introduction to Artificial Intelligence',
-      progress: 15,
-      duration: '3 hours',
-      difficulty: 'beginner',
-      icon: '🤖',
-      category: 'ai',
-      color: 'from-pink-400 to-red-500',
-      levels: [
-        {
-          id: '5-1',
-          title: 'What is AI?',
-          description: 'Understanding artificial intelligence concepts',
-          duration: '25 min',
-          difficulty: 'Easy',
-          status: 'completed',
-          points: 50
-        },
-        {
-          id: '5-2',
-          title: 'Machine Learning',
-          description: 'How computers learn from data',
-          duration: '45 min',
-          difficulty: 'Medium',
-          status: 'available',
-          points: 125
-        },
-        {
-          id: '5-3',
-          title: 'Neural Networks',
-          description: 'Brain-inspired computing systems',
-          duration: '60 min',
-          difficulty: 'Hard',
-          status: 'locked',
-          points: 175
-        },
-        {
-          id: '5-4',
-          title: 'AI Applications',
-          description: 'Real-world uses of artificial intelligence',
-          duration: '40 min',
-          difficulty: 'Medium',
-          status: 'locked',
-          points: 100
-        }
-      ]
-    },
-    {
-      id: '6',
       title: 'Automation Concepts',
       description: 'Learn about smart home automation',
       progress: 60,
@@ -326,7 +277,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
       ]
     },
     {
-      id: '8',
+      id: '6',
       title: 'Smart AI Dustbin',
       description: 'Build an intelligent waste sorting system with AI',
       progress: 0,
@@ -337,7 +288,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
       color: 'from-cyan-400 to-blue-600',
       levels: [
         {
-          id: '8-1',
+          id: '6-1',
           title: 'Mission Briefing',
           description: 'Understanding the smart dustbin challenge',
           duration: '20 min',
@@ -346,7 +297,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
           points: 50
         },
         {
-          id: '8-2',
+          id: '6-2',
           title: 'AI Training Phase',
           description: 'Train AI to recognize different waste types',
           duration: '90 min',
@@ -355,7 +306,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
           points: 200
         },
         {
-          id: '8-3',
+          id: '6-3',
           title: 'Hardware Integration',
           description: 'Connect sensors and actuators',
           duration: '120 min',
@@ -364,7 +315,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
           points: 300
         },
         {
-          id: '8-4',
+          id: '6-4',
           title: 'System Testing',
           description: 'Test and optimize the complete system',
           duration: '90 min',
@@ -375,7 +326,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
       ]
     },
     {
-      id: '7',
+      id: '5',
       title: 'Battery Monitor (Capstone)',
       description: 'Build a complete battery monitoring system',
       progress: 0,
@@ -386,7 +337,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
       color: 'from-emerald-400 to-teal-600',
       levels: [
         {
-          id: '7-1',
+          id: '5-1',
           title: 'Project Overview',
           description: 'Understanding the complete battery monitor system',
           duration: '20 min',
@@ -395,7 +346,7 @@ const CoursesDashboard: React.FC<CoursesDashboardProps> = ({ setActiveSection, s
           points: 50
         },
         {
-          id: '7-2',
+          id: '5-2',
           title: 'Choose Your Path',
           description: 'Select your learning level and components',
           duration: '10 min',

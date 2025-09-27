@@ -21,6 +21,7 @@ function App() {
       if (selectedCourse === '7') {
         return <BatteryMonitorCapstone setActiveSection={setActiveSection} setSelectedCourse={setSelectedCourse} />;
       } else if (selectedCourse === '8') {
+      } else if (selectedCourse === '6') {
         return <SmartDustbinMission setActiveSection={setActiveSection} setSelectedCourse={setSelectedCourse} />;
       }
       return <CourseLevels courseId={selectedCourse} setActiveSection={setActiveSection} setSelectedCourse={setSelectedCourse} />;
