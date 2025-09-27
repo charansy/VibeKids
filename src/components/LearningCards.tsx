@@ -685,29 +685,46 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
 
           {/* Card Content */}
           <div className="space-y-3">
-            {/* The Concept */}
-            {currentCardData.content.explanation && (
+            {/* The Concept - Main explanation */}
+            {(currentCardData.content.explanation || currentCardData.content.concept) && (
               <div className="mb-4">
                 <h4 className="text-lg font-semibold text-gray-800 mb-2">The Concept</h4>
                 <div className="text-gray-700 leading-relaxed">
-                  {currentCardData.content.explanation}
+                  {currentCardData.content.concept || currentCardData.content.explanation}
                 </div>
               </div>
             )}
 
-            {/* Key idea */}
-            {currentCardData.content.keyIdea && (
-              <div className="bg-blue-50 rounded p-3 border-l-2 border-blue-400 mb-4">
-                <div className="text-sm font-medium text-blue-800 mb-1">Key Concept:</div>
-                <div className="text-blue-700 text-sm">{currentCardData.content.keyIdea}</div>
+            {/* Visual Example */}
+            {currentCardData.content.image && (
+              <div className="mb-4">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Visual Example</h4>
+                <div className="flex justify-center">
+                  <img 
+                    src={currentCardData.content.image} 
+                    alt="Learning concept illustration"
+                    className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+                    style={{ maxHeight: '300px' }}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Concept */}
-            {currentCardData.content.concept && (
-              <div className="bg-green-50 rounded p-3 border-l-2 border-green-400 mb-4">
-                <div className="text-sm font-medium text-green-800 mb-1">Concept:</div>
-                <div className="text-green-700 text-sm">{currentCardData.content.concept}</div>
+            {/* Explanation with Play/Pause Button */}
+            {(currentCardData.content.explanation || currentCardData.content.keyIdea) && (
+              <div className="mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <h4 className="text-lg font-semibold text-gray-800">Explanation</h4>
+                  <button
+                    className="flex items-center justify-center w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+                    title="Play explanation"
+                  >
+                    <Play className="w-4 h-4 ml-0.5" />
+                  </button>
+                </div>
+                <div className="text-gray-700 leading-relaxed">
+                  {currentCardData.content.explanation || currentCardData.content.keyIdea}
+                </div>
               </div>
             )}
 
@@ -764,21 +781,6 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
               <div className="bg-orange-50 rounded p-3 border-l-2 border-orange-400">
                 <div className="text-sm font-medium text-orange-800 mb-1">Your Task:</div>
                 <div className="text-orange-700 text-sm whitespace-pre-line">{currentCardData.content.task}</div>
-              </div>
-            )}
-
-            {/* Image */}
-            {currentCardData.content.image && (
-              <div className="bg-white/50 rounded-lg p-4 border-l-4 border-blue-400">
-                <div className="font-semibold text-gray-800 mb-4">Visual Example:</div>
-                <div className="flex justify-center">
-                  <img 
-                    src={currentCardData.content.image} 
-                    alt="Learning concept illustration"
-                    className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
-                    style={{ maxHeight: '300px' }}
-                  />
-                </div>
               </div>
             )}
 
@@ -975,9 +977,9 @@ const LearningCards: React.FC<LearningCardsProps> = ({ onBack, onComplete }) => 
 
           <button
             onClick={handleNextCard}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+            className="flex items-center justify-center w-12 h-12 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-lg"
+            title="Next"
           >
-            Next
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
