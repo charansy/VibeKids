@@ -1,0 +1,14 @@
+{
+  "tfjsVersion": "1.15.0",
+  "tmVersion": "2.0.4",
+  "packageVersion": "0.8.4",
+  "modelName": "tm-my-image-model",
+  "labels": [
+    "Plastic Bottle",
+    "Paper",
+    "Can",
+    "Food Waste",
+    "Glass"
+  ],
+  "imageSize": 224
+}
